@@ -6,6 +6,7 @@ from einops.layers.torch import Rearrange
 import torch.nn.functional as F
 import torch.nn.init as init
 import pdb
+import numpy as np  
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
@@ -16,7 +17,7 @@ def pair(t):
 class PreNorm(nn.Module):
     def __init__(self, dim, fn):
         super().__init__()
-        self.norm = nn.LayerNorm(dim)
+        self.norm = nn.LayerNorm(dim,eps=1e-6)
         self.fn = fn
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
@@ -94,7 +95,7 @@ class Attention(nn.Module):
 
         self.to_out = nn.Sequential(
             nn.Linear(inner_dim, dim, bias=False),
-            nn.Dropout(dropout)
+            # nn.Dropout(dropout)
         ) if project_out else nn.Identity()
 
     def forward(self, x,  return_attention=False, return_key = False):
@@ -102,13 +103,17 @@ class Attention(nn.Module):
             return self.qkv(x)
         
         w = rearrange(self.qkv(x), 'b n (h d) -> b h n d', h = self.heads)
+        w_norm = F.normalize(w, p=2, dim=-1)
 
         dots = torch.matmul(w, w.transpose(-1, -2)) * self.scale
-
+        dots_norm = torch.matmul(w_norm, w_norm.transpose(-1, -2))  * self.scale
+          
         attn = self.attend(dots)
-        attn = self.dropout(attn)
+        attn_norm = self.attend(dots_norm)
+        # attn = self.dropout(attn)
         if return_attention:
-            return attn
+            return attn,attn_norm
+            # return w
 
         out = torch.matmul(attn, w)
 
@@ -175,7 +180,7 @@ class CRATE(nn.Module):
 
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
+            nn.Linear(dim, num_classes,bias=True)
         )
 
     def forward(self, img):
@@ -216,11 +221,13 @@ class CRATE(nn.Module):
         for i, (attn, ff) in enumerate(self.transformer.layers):
             if i < layer:
                 grad_x = attn(x) + x
+                # return grad_x
                 x = ff(grad_x) + grad_x if self.residual_mlp else ff(grad_x)
             else:
-                attn_map = attn(x, return_attention=True)
+                attn_map,attn_map_norm = attn(x, return_attention=True) # [b,h,n,n]
                 # print(attn_map.shape)
-                return attn_map
+                return attn_map,attn_map_norm
+                # return x #[b,n,dim]
             
 
 def CRATE_tiny():
@@ -245,9 +252,10 @@ def CRATE_small():
                     emb_dropout=0.0,
                     dim_head=576//12)
 
-def CRATE_base():
+#19167
+def CRATE_base(patch_size):
     return CRATE(image_size=224,
-                patch_size=8,
+                patch_size=patch_size,
                 num_classes=19167,
                 dim=768,
                 depth=12,
@@ -259,10 +267,10 @@ def CRATE_base():
                 emb_dropout=0.0,
                 dim_head=768//12)
 
-def CRATE_large():
+def CRATE_large(patch_size):
     return CRATE(image_size=224,
-                patch_size=8,
-                num_classes=1000,
+                patch_size=patch_size,
+                num_classes=19167,
                 dim=1024,
                 depth=24,
                 heads=16,
@@ -285,9 +293,9 @@ class CRATEFeat(nn.Module):
         if crate_arch == 'small':
             self.model = CRATE_small_21k()
         elif crate_arch == 'base':
-            self.model = CRATE_base()
+            self.model = CRATE_base(patch_size=patch_size)
         elif  crate_arch == 'large':
-            self.model = CRATE_large()
+            self.model = CRATE_large(patch_size=patch_size)
         elif crate_arch == 'demo':
             self.model = CRATE_base_demo()
             self.model.mlp_head = nn.Sequential(
@@ -375,32 +383,3 @@ class CRATEFeat(nn.Module):
             qkv = qkv[None, :, :, :]
             return qkv[:, :, 1:, :]
             
-
-
-
-
-# model = CRATE_base()
-# dir = '/HDD_data_storage_2u_1/jinruiyang/shared_space/code/SCLIP/clip/converted_checkpoints/'
-# pth_path = os.path.join(dir,'B32_ablation_in21k_mlp_nodecouple_x1_mixup_open_warm10_4096_lr5e5_91e_norangaug_no_label_sm_v3_128_checkpoint.pth')
-# # # 加载预训练权重
-# model_weights = torch.load(pth_path)
-# # # 将权重加载到模型
-# model.load_state_dict(model_weights)
-
-# for k,v in model.state_dict().items():
-#     print(k,v.shape)
-
-
-# model = model.eval()
-
-# bs = 32
-# img_size = 224
-# fake_image = torch.ones((bs, 3, img_size, img_size))  # (batch_size, channels, height, width)
-
-# res = model(fake_image)
-# # torch.abs(d['conv1.weight']).sum()
-# # torch.abs(d['conv1.bias']).sum()
-# print(res,res.shape)
-# # total_params = sum(p.numel() for p in model.parameters())
-# # print(f"Total Parameters: {total_params}")
-# #np.mean(d['conv1.weight'])
