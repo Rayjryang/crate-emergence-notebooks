@@ -9,7 +9,7 @@ dataset_dir=/datasets01/COCO/022719
 
 ###### L/8 , vis layer 20, input size 448
 
-checkpoint_path=L8_in21k_res_mlp_fixed_decouple_x4_mixup_open_warm10_4096_lr5e5_wd01_dp01_91e_no_randaug_no_labelsm_L8_v3_256_checkpoint.pth  #  crate alpha  L/14 on 21k
+checkpoint_path=L8_in21k_res_mlp_fixed_decouple_x4_mixup_open_warm10_4096_lr5e5_wd01_dp01_91e_no_randaug_no_labelsm_L8_v3_256_checkpoint.pth  #  crate alpha  L/8 on 21k
 
 
 echo 'eval '$checkpoint_path
@@ -34,7 +34,7 @@ python maskcut/maskcut_crate.py   --pretrain_path $checkpoint_dir$checkpoint_pat
 
 ###### B/8 , vis layer 10, input size 448
 
-checkpoint_path=B8_in21k_res_mlp_fixed_decouple_x4_no_mixup_open_warm10_4096_lr5e5_wd01_91e_no_randaug_no_label_sm_v3_256_spot_checkpoint.pth  #  crate alpha  L/14 on 21k
+checkpoint_path=B8_in21k_res_mlp_fixed_decouple_x4_no_mixup_open_warm10_4096_lr5e5_wd01_91e_no_randaug_no_label_sm_v3_256_spot_checkpoint.pth  #  crate alpha  B/8 on 21k
 
 
 echo 'eval '$checkpoint_path
