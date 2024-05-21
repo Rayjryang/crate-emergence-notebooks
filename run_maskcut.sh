@@ -14,7 +14,7 @@ checkpoint_path=L8_in21k_res_mlp_fixed_decouple_x4_mixup_open_warm10_4096_lr5e5_
 
 echo 'eval '$checkpoint_path
 
-out_dir=vis/mask_cut/json/crate_alpha_L8_21k_layer_20_448_t0.3_return_x
+out_dir=vis/mask_cut/json/crate_alpha_L8_21k_layer_20_448_t0.3_return_x_crf
 # dim = 576 small
 # dim = 192 tiny
 # 19167 classes
@@ -29,7 +29,7 @@ python maskcut/maskcut_crate.py   --pretrain_path $checkpoint_dir$checkpoint_pat
 --vit-arch large \
 --vis-depth 20 \
 --feat-dim 1024 \
---num-classes 19167
+--num-classes 19167 --crf
 
 
 ###### B/8 , vis layer 10, input size 448
@@ -39,7 +39,7 @@ checkpoint_path=B8_in21k_res_mlp_fixed_decouple_x4_no_mixup_open_warm10_4096_lr5
 
 echo 'eval '$checkpoint_path
 
-out_dir=vis/mask_cut/json/crate_alpha_B8_21k_layer_10_448_t0.3_return_x
+out_dir=vis/mask_cut/json/crate_alpha_B8_21k_layer_10_448_t0.3_return_x_crf
 # dim = 576 small
 # dim = 192 tiny
 # 19167 classes
@@ -54,4 +54,4 @@ python maskcut/maskcut_crate.py   --pretrain_path $checkpoint_dir$checkpoint_pat
 --vit-arch large \
 --vis-depth 10 \
 --feat-dim 768 \
---num-classes 19167
+--num-classes 19167 --crf
